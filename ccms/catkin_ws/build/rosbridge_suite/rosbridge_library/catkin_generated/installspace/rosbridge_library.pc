@@ -1,0 +1,8 @@
+prefix=/home/ubuntu/ccms/catkin_ws/install
+
+Name: rosbridge_library
+Description: Description of rosbridge_library
+Version: 0.9.0
+Cflags: -I/home/ubuntu/ccms/catkin_ws/install/include
+Libs: -L/home/ubuntu/ccms/catkin_ws/install/lib 
+Requires: message_runtime std_msgs geometry_msgs

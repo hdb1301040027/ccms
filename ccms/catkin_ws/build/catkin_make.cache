@@ -1,0 +1,2 @@
+ccms_pro:rosbridge_suite/rosapi:rosbridge_suite/rosbridge_library:rosbridge_suite/rosbridge_server:rosbridge_suite/rosbridge_suite:roswww
+-DCATKIN_DEVEL_PREFIX=/home/ubuntu/ccms/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/ubuntu/ccms/catkin_ws/install -G Unix Makefiles

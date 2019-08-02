@@ -1,0 +1,6 @@
+set(roswww_SETUP_PY_VERSION "0.1.11")
+set(roswww_SETUP_PY_SCRIPTS "")
+set(roswww_SETUP_PY_PACKAGES "roswww")
+set(roswww_SETUP_PY_PACKAGE_DIRS "src/roswww")
+set(roswww_SETUP_PY_MODULES "")
+set(roswww_SETUP_PY_MODULE_DIRS "")

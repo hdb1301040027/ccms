@@ -1,0 +1,8 @@
+prefix=/home/ubuntu/ccms/catkin_ws/install
+
+Name: roswww
+Description: Description of roswww
+Version: 0.1.11
+Cflags: 
+Libs: -L/home/ubuntu/ccms/catkin_ws/install/lib 
+Requires: 

@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>储能电源系统控制管理系统</title>
+    <script src="./js/jQuery3.2.1.js"></script>
+    <script src="./js/bootstrap-3.3.7-dist/js/bootstrap.min.js"></script>
+    <link href="./js/bootstrap-3.3.7-dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="./css/style.css" >
+    <link rel="stylesheet" type="text/css" href="./layui/css/layui.css">
+
+    <script src="js/Websocket/websocketstore.js"></script>
+    <script src="build/eventemitter2.min.js"></script>
+    <script src="build/roslib.js"></script>
+    <script src="build/bean.js"></script>
+    <style type="text/css">
+        
+        .rightMain
+        {
+          top:60px;
+          position: absolute;
+          left:200px;
+          width: auto;
+          height: 100%;
+          overflow: hidden;
+        }
+        .layui-header .layui-logo
+        {
+            /*元素的文本无法被选中*/
+            /*safari、chrome浏览器*/
+            -webkit-user-select: none;
+            /*firefox浏览器*/
+            -moz-user-select: none;
+            /*ie浏览器*/
+            -ms-user-select: none;
+            
+        }
+        .layui-header ul li a
+        {
+            /*文本无下划线*/
+            text-decoration: none;
+
+        }
+        .layui-side-scroll  .connecting
+        {
+          display: none;
+        }
+        .layui-layout-admin .layui-side
+        {
+          width:200px;
+          height: auto;
+          float: left;
+        }
+        .layui-side-scroll
+        {
+          position: absolute;
+          width: 200px;
+          height: auto;
+        }
+
+        .layui-side-scroll ul li a
+        {
+            text-decoration: none;
+        }
+        .layui-side-scroll ol li
+        {
+            
+            text-align: center;
+            font-size:14px;
+            opacity: 0.5;
+            /*元素的文本无法被选中*/
+            /*safari、chrome浏览器*/
+            -webkit-user-select: none;
+            /*firefox浏览器*/
+            -moz-user-select: none;
+            /*ie浏览器*/
+            -ms-user-select: none;
+        }
+
+        
+    </style>
+    </head>
+<script>
+  // Connecting to ROS
+  // -----------------
+  var ros = new ROSLIB.Ros();
+
+  // If there is an error on the backend, an 'error' emit will be emitted.
+  ros.on('error', function(error) {
+    document.getElementById('connecting').style.display = 'none';
+    document.getElementById('connected').style.display = 'none';
+    document.getElementById('closed').style.display = 'none';
+    document.getElementById('error').style.display = 'inline';
+    console.log(error);
+  });
+
+  // Find out exactly when we made a connection.
+  ros.on('connection', function() {
+    console.log('Connection made!');
+    document.getElementById('connecting').style.display = 'none';
+    document.getElementById('error').style.display = 'none';
+    document.getElementById('closed').style.display = 'none';
+    document.getElementById('connected').style.display = 'inline';
+  });
+
+  ros.on('close', function() {
+    console.log('Connection closed.');
+    document.getElementById('connecting').style.display = 'none';
+    document.getElementById('connected').style.display = 'none';
+    document.getElementById('closed').style.display = 'inline';
+    document.getElementById('error').style.display = 'none';
+  });
+
+  // Create a connection to the rosbridge WebSocket server.
+  //ros.connect('ws://localhost:8888');
+  //ros.connect('ws://222.241.205.75:8888');
+	ros.connect('ws://192.168.30.107:8888');
+  
+  var send_data = new ROSLIB.Topic({
+    ros : ros,
+    name : '/send',
+    messageType : 'msg_test/sendData'
+  });
+
+  //create message
+  // var send = new ROSLIB.Message({
+  //    data1 : 1
+  // });
+
+  //publish
+  //send_data.publish(send);
+
+  send_msg = function(msg){
+    send_data.publish(msg);
+  }
+  
+
+  var d1_data = new ROSLIB.Topic({
+    ros : ros,
+    name : '/simple_can_msg',
+    messageType : 'ccms_pro/UnpackingCanData1'
+  });
+  d1_data.subscribe(function(message) {
+      console.log('in d1_data');
+      //2
+      var data1 = {
+        id : message.id,
+        Module_Voltage : message.Module_Voltage,
+        Module_Capacitance_Temperature : message.Module_Capacitance_Temperature
+      };
+	  console.log("data1: " + data1);
+      try{
+        child.window.deal_data_p(data1);
+		//child.window.deal();
+      }catch(err){
+        console.log(err);
+        console.log(err.message);
+      }
+
+      try{
+        //4
+        child.window.error1(message.module_overvolt_abnormal, message.module_capacity_abnormal, message.other_data_bit, message.module_overvolt_warming);
+      }catch(err){
+        console.log(err);
+        console.log(err.message);
+      }
+  });
+
+	var d2_data = new ROSLIB.Topic({
+    ros : ros,
+    name : '/simple_can_msg_block1',
+    messageType : 'ccms_pro/UnpackingCanData2'
+  });
+	d2_data.subscribe(function(message) {
+			console.log('in d2_data');
+      //2
+			data = [message.Module_Block_Voltage1, message.Module_Block_Voltage2,
+							message.Module_Block_Voltage3, message.Module_Block_Voltage4];
+      try{
+        child.window.deal_data_p3(message.id, data);
+      }catch(err){
+        console.log(err);
+        console.log(err.message);
+      }
+	});
+
+	var d3_data = new ROSLIB.Topic({
+    ros : ros,
+    name : '/simple_can_msg_block2',
+    messageType : 'ccms_pro/UnpackingCanData3'
+  });
+	d3_data.subscribe(function(message) {
+			console.log('in d3_data');
+      //2
+			data = [message.Module_Block_Voltage5, message.Module_Block_Voltage6,
+							message.Module_Block_Voltage7, message.Module_Block_Voltage8];
+      try{
+        child.window.deal_data_p4(message.id, data);
+      }catch(err){
+        console.log(err);
+        console.log(err.message);
+      }
+	});
+
+	var d4_data = new ROSLIB.Topic({
+    ros : ros,
+    name : '/simple_can4_msg',
+    messageType : 'ccms_pro/UnpackingCanData4'
+  });
+	d4_data.subscribe(function(message) {
+			console.log('in d4_data');
+      //4
+			try{
+				child.window.error2(message.undervolt_warning, message.resistance_abnormality, message.undervolt_alarm, message.low_volt_alarm);
+			}catch(err){
+				console.log(err);
+				console.log(err.message);
+			}
+
+			try{
+				child.window.deal_data_state(message.voltage_equal_state, message.Other_data);
+			}catch(err){
+				console.log(err);
+				console.log(err.message);
+			}
+	});
+
+  var d5_data = new ROSLIB.Topic({
+    ros : ros,
+    name : '/simple_can5_msg',
+    messageType : 'ccms_pro/UnpackingCanData5'
+  });
+  d5_data.subscribe(function(message){
+    console.log("in d5_data");
+
+    //1
+    var data5 = {
+      Balanced_data_number : message.Balanced_data_number,
+      Modules_Above_Threshold_Voltage : message.Modules_Above_Threshold_Voltage,
+      Moduel_Average_Voltage : message.Moduel_Average_Voltage,
+      Module_Voltage_Threshold : message.Module_Voltage_Threshold,
+      Minimum_Module_Voltage : message.Minimum_Module_Voltage
+    };
+
+    try{
+      child.window.deal_data_p5(data5);
+    }catch(err){
+      console.log(err);
+      console.log(err.message);
+    }
+
+    try{
+      child.window.deal_data_avg(data5);
+    }catch(err){
+      console.log(err);
+      console.log(err.message);
+    }
+
+  });
+
+  
+	var d6_data = new ROSLIB.Topic({
+    ros : ros,
+    name : '/simple_can6_msg',
+    messageType : 'ccms_pro/UnpackingCanData6'
+  });
+	d6_data.subscribe(function(message) {
+			console.log('in d6_data');
+      //1
+     var data6 = {
+        Energy_Storage_Voltage : message.Energy_Storage_Voltage,
+        Energy_Storage_Current : message.Energy_Storage_Current,
+        Energy_Storage_Temperature : message.Energy_Storage_Temperature
+     };
+
+     try{
+        child.window.deal_data6(data6, message.Fandata, message.otherdata);
+     }catch(err){
+        console.log(err);
+        console.log(err.message);
+     }
+
+     try{
+        child.window.error3(message.otherdata, message.FanAccident, message.Fandata);
+     }catch(err){
+        console.log(err);
+        console.log(err.message);
+     }
+	});
+
+
+  var batteryDetect = new ROSLIB.Topic({
+    ros : ros,
+    name : '/battery_detect',
+    messageType : 'ccms_pro/BatteryResult'
+  });
+  batteryDetect.subscribe(function(message){
+    //int16 batteryID
+    //int16 batteryhealth 
+    //time stamp
+    console.log("in batteryDetect");
+    child.window.health1(message.batteryID, message.batteryhealth);
+  });
+
+  var moduleDetect = new ROSLIB.Topic({
+    ros : ros,
+    name : '/module_detect',
+    messageType : 'ccms_pro/ModuleResult'
+  });
+  moduleDetect.subscribe(function(message){
+    //int16 modID
+    //int16 modulehealth
+    //time stamp
+    console.log("in moduleDetect");
+    var data = {
+      id : message.modID,
+      healthdata : message.modulehealth,
+    };
+    child.window.health2(data);
+  });
+
+  var blockDetect = new ROSLIB.Topic({
+    ros : ros,
+    name : '/block_detect',
+    messageType : 'ccms_pro/BlockResult'
+  });
+  blockDetect.subscribe(function(message){
+    //int16 modID
+    //uint16[] blockhealths 
+    //time stamp
+    console.log("in blockDetect");
+    child.window.health3(message.modID, message.blockhealths);
+  });
+
+
+  var addTwoIntsClient = new ROSLIB.Service({
+    ros : ros,
+    name : '/history_power_msg',
+    serviceType : 'ccms_pro/ModuleData'
+  });
+
+  function send_time_and_id(id){
+    // var timestamp1 = (new Date()).valueOf();
+    // console.log(timestamp1)
+    var start_time = document.getElementById("s").value;
+    var end_time = document.getElementById("e").value;
+    start_time = parseInt(start_time);
+    end_time = parseInt(end_time)
+    
+    realtime = timestampToTime(start_time);
+    console.log(realtime);
+
+    var request = new ROSLIB.ServiceRequest({
+      // Power_Number : id,
+      // Module_Number : 1,
+      // Block_Number : 1,
+      StartStamp :start_time/1000,
+      EndStamp :end_time/1000
+    });
+
+    addTwoIntsClient.callService(request, function(result) {
+    //console.log('Result for service call on ' + addTwoIntsClient.name + ': ' + result.count);
+      console.log('result: ' + result.HEnergy);
+	  var result = result.HEnergy;
+      //result [1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4]
+      var a = [1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4];
+      var date = [];
+      var voltage = [];
+      var Temperature = [];
+      var current = [];
+
+      for (var i = 0; i<result.length; i += 4){
+        date.push(timestampToTime(result[i]));
+        voltage.push(result[i + 1]);
+        Temperature.push(result[i + 2]);
+        current.push(result[i + 3]);
+      };
+
+      console.log('date: ' + date);
+      console.log('voltage: ' + voltage);
+      console.log('Temperature: ' + Temperature);
+      console.log('current: ' + current);
+
+      //var data = [Math.random() * 300];
+
+      //for (var i = 1; i < 10; i++) {
+          //var now = new Date(base += oneDay);
+          //date.push([now.getFullYear(), now.getMonth() + 1, now.getDate()].join('/'));
+     //     data.push(Math.round((Math.random() - 0.5) * 20 + data[i - 1]));
+      //};
+      var evt = {
+                date : date,
+                data : [voltage, Temperature, current]
+            };
+      child.window._dealMsg(evt);
+    });
+
+  }
+
+    function timestampToTime(timestamp) {
+      var date = new Date(timestamp*1000);//时间戳为10位需*1000，时间戳为13位的话不需乘1000
+        var Y = date.getFullYear() + '/';
+        var M = (date.getMonth()+1 < 10 ? +(date.getMonth()+1) : date.getMonth()+1) + '/';
+        var D = date.getDate() + ' ';
+        var h = date.getHours() + ':';
+        var m = date.getMinutes() + ':';
+        var s = date.getSeconds();
+        return Y+M+D+h+m+s;
+  }
+
+   
+</script>
+
+
+
+<body class="layui-layout-body">
+    <div class="layui-layout layui-layout-admin">
+        <div class="layui-header">  
+            <div class="layui-logo" style="font-size: 30px; left: -1%; top:-3%;">CCMS</div>
+            <!-- 头部区域左边 -->
+            <ul class="layui-nav layui-layout-left" >
+                <li id="statusIndicator" class="layui-nav-item">
+                    <i class="layui-icon layui-icon-rate-half" title="Connecting" id="connecting"style="font-size:24px; color: #FFB800; "></i>
+                    <i class="layui-icon layui-icon-rate-solid" title="Connected" id="connected"style="font-size:24px;display: none;color:#00D600"></i>
+                    <i class="layui-icon layui-icon-rate" title="Error in the backend" id="error"style="font-size:24px;display: none;color:#FF5722"></i>
+                    <i class="layui-icon layui-icon-rate-solid" title="Connection closed" id="closed"style="font-size:24px;display: none;color: #FF5722"></i>
+                </li>
+                <li class="layui-nav-item">
+                  <a href="javascript:;">控制台</a>
+                </li>
+                <li class="layui-nav-item">
+                    <a href="javascript:;">其它系统</a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="javascript:;">邮件管理</a></dd>
+                        <dd><a href="javascript:;">消息管理</a></dd>
+                        <dd><a href="javascript:;">授权管理</a></dd>
+                    </dl>
+                </li>
+            </ul>
+            <ul class="layui-nav layui-layout-right">
+            
+                <li class="layui-nav-item">
+                    <a href="javascript:;" onclick="return confirmAct()" style="color:#F0F0F0;"><span><i class="fa fa-sign-out" aria-hidden="false"></i> 退出</span></a>
+                </li>
+            </ul>
+        </div>
+        <!-- 左侧导航栏 -->
+        <div class="layui-side layui-bg-black" >
+            <div class="layui-side-scroll">
+            <!--实时模块开始-->
+            <ul class="layui-nav layui-nav-tree" lay-shrink= "all" lay-filter = 'test' >
+                
+              
+            <li class="layui-nav-item main_left" >
+                <a href="javascript:;">
+                    <i class="layui-icon layui-icon-home">&nbsp;&nbsp;&nbsp;实时监控</i></a>
+                <dl class="layui-nav-child" >
+                    <dd class="menuSec " ><a href="javascript:;" id="menu_three" style="opacity: 0.7;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;一号电源</a>
+                    <ol class="layui-nav-child" >
+                        <li data-src="./html/now/onePowerNow.html">电源监控</li>
+                        <li data-src="./html/now/onePowerMod.html">模组监控</li>
+                        <li data-src="./html/now/onePowerModHealth.html">模组健康状况</li>
+                        <li data-src="./html/now/onePowerError.html">异常/预警信号</li>
+                        
+                    </ol>
+
+                    </dd>
+                </dl>
+                <dl class="layui-nav-child">
+                    <dd class="menuSec"><a href="javascript:;" id="menu_three" style="opacity: 0.7;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;二号电源</a>
+                    <ol class="layui-nav-child" >
+                        <li data-src="./html/now/twoPowerNow.html">电源监控</li>
+                        <li data-src="./html/now/twoPowerMod.html">模组监控</li>
+                        <li data-src="./html/now/twoPowerModHealth.html">模组健康状况</li>
+                        <li data-src="./html/now/twoPowerError.html">异常/预警信号</li>
+                    </ol>
+                    </dd>
+                </dl>
+                <dl class="layui-nav-child">
+                    <dd class="menuSec"><a href="javascript:;" id="menu_three" style="opacity: 0.7;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;三号电源</a>
+                    <ol class="layui-nav-child">
+                        <li data-src="./html/now/threePowerNow.html">电源监控</li>
+                        <li data-src="./html/now/threePowerMod.html">模组监控</li>
+                        <li data-src="./html/now/threePowerModHealth.html">模组健康状况</li>
+                        <li data-src="./html/now/threePowerError.html">异常/预警信号</li>
+                    </ol>
+                    </dd>
+                </dl>
+            </li>
+            <!--实时模块结束-->
+            
+            <!--历史模块开始-->
+            <li class="layui-nav-item main_left">
+                <a href="javascript:;" class="menuFir" lay-tips="历史数据" lay-direction="2">
+                    <i class="layui-icon layui-icon-component">&nbsp;&nbsp;&nbsp;历史数据</i>
+                </a>
+                <dl class="layui-nav-child">
+                    <dd class="menuSec">
+                        <a href="javascript:;" id="menu_three" style="opacity: 0.7;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;一号电源</a>
+                    <ol class="layui-nav-child">
+                        <li data-src="./html/history/onePowerHistory.html" >电源历史数据</li>
+                        <li data-src="./html/history/onePowerModHistory.html">模组历史数据</li>
+                        <li data-src="./html/history/onePowerSingleModHistory.html">模块历史数据</li>
+                    </ol>
+                    </dd>
+                </dl>
+                <dl class="layui-nav-child">
+                    <dd class="menuSec"><a href="javascript:;" id="menu_three" style="opacity: 0.7;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;二号电源</a>
+                    <ol class="layui-nav-child" >
+                        <li data-src="./html/history/twoPowerHistory.html">电源历史数据</li>
+                        <li data-src="./html/history/twoPowerModHistory.html">模组历史数据</li>
+                        <li data-src="./html/history/twoPowerSingleModHistory.html">模块历史数据</li>
+                    </ol>
+                    </dd>
+                </dl>
+                <dl class="layui-nav-child">
+                    <dd class="menuSec"><a href="javascript:;" id="menu_three" style="opacity: 0.7;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;三号电源</a>
+                    <ol class="layui-nav-child">
+                        <li data-src="./html/history/threePowerHistory.html">电源历史数据</li>
+                        <li data-src="./html/history/threePowerModHistory.html">模组历史数据</li>
+                        <li data-src="./html/history/threePowerSingleModHistory.html">模块历史数据</li>
+                    </ol>
+                    </dd>
+                </dl>
+            </li>
+            <!--历史模块结束-->
+
+            <!-- 故障查询模块开始-->
+            <li class="layui-nav-item main_left" >
+              <a href="javascript:;" class="menuFir">
+                <i class="layui-icon layui-icon-fire">&nbsp;&nbsp;&nbsp;故障检测</i>
+              </a>
+              <dl class="layui-nav-child" style="text-align: center;font-size: 18px;text-decoration: none; opacity: 0.5;" >
+                <li data-src="./html/breakdown/breakdown.html" style="cursor: default;/*鼠标经过文字时光标样式为默认*/">故障检测</li>
+              </dl>
+            </li>
+
+            <!-- 故障查询模块结束-->
+
+            <!--账户管理开始-->
+            <li class="layui-nav-item main_left">
+                <a href="javascript:;" class="menuFir">
+                  <i class="layui-icon layui-icon-username" >&nbsp;&nbsp;&nbsp;我的管理</i>
+                </a>
+                <dl class="layui-nav-child" style="text-align: center;font-size: 18px;text-decoration: none; opacity: 0.5;">
+                    <li data-src="./html/account/account.html" style="cursor: default;/*鼠标经过文字时光标样式为默认*/" >我的账户</li>
+                </dl>
+            </li> 
+            <!--账户管理结束-->
+            </ul>
+        </div>
+        </div>
+        <!--左面导航结束-->
+
+        <!--右面显示的内容开始-->
+        <div class="rightMain" >
+            <iframe name ="child" id="main" src="./html/now/onePowerNow.html" scrolling="yes" frameborder="0" ></iframe>
+        </div>
+        <!--右面显示的内容结束-->
+    </div>
+<script src="./js/main/script.js"></script>
+<script src="layui/layui.js"></script>
+<script>
+     //注意：导航 依赖 element 模块，否则无法进行功能性操作
+    layui.use('element', function(){
+    var element = layui.element;
+  
+    //…
+});   
+    //显示导航栏的三层菜单JavaScript文件
+    layui.use(['element','jquery'], function(){
+    var element = layui.element,$=layui.jquery;
+    $("#menu_three").on("click",function(){
+        $(this).next().toggle();
+     })
+    $("ol").on("click","li a",function(){
+      $.each($(this).parent().siblings(),function(i,e){
+          $(e).find("a").removeClass('three_this')
+      });
+        $(this).addClass('three_this');                            // 添加当前元素的样式
+    })
+});
+</script>
+
+<script type="text/javascript" language="javascript">
+    $(function(){
+   $(".main_left li").on("click",function(){
+         var address =$(this).attr("data-src");
+      $("iframe").attr("src",address);
+   });
+
+});
+
+
+function confirmAct() 
+{ 
+    if(confirm('确定要退出吗?')) 
+    {
+        setTimeout("javascript:location.href='login.html'", 3000);
+    } 
+    return false; 
+} 
+
+
+
+</script>
+
+
+</body>
+</html>
